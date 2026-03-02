@@ -4,3 +4,16 @@
 # This system enables an authorized admin to securely trigger a device remotely using encrypted push notifications. The mobile app processes the request in the background, validates the request through cryptographic verification, fetches high-accuracy GPS coordinates (even without internet), and intelligently decides whether to send the data to a backend server or fallback to SMS transmission.
 
 # The architecture is designed with security-first principles, survival mode logic, and tamper-aware enhancements to ensure reliability in real-world conditions.
+
+# Architecture Overview
+
+## Flow 
+
+Admin Panel
+- → Backend Server
+- → Encrypted Silent Push
+- → React Native Background Handler
+- → Security Validation
+- → GPS Fetch
+- → Decision Engine
+- → Server Upload / SMS Fallback
