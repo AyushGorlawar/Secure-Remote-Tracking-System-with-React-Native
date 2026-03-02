@@ -1,6 +1,6 @@
 # Secure Remote Tracking System (SRTS)
 
-A production-ready React Native (Expo SDK 55) mobile application for **secure, remote device tracking** with encrypted communication, background execution, battery-aware emergency modes, and SMS fallback.
+A production-ready React Native (Expo SDK 54) mobile application for **secure, remote device tracking** with encrypted communication, background execution, battery-aware emergency modes, and SMS fallback.
 
 ---
 

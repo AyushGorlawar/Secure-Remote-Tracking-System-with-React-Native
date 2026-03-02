@@ -17,17 +17,14 @@ import {
   Platform,
 } from 'react-native';
 import { Stack } from 'expo-router';
-import { securityService } from './services/securityService';
-import { locationService } from './services/locationService';
-import { triggerService } from './services/triggerService';
-import { survivalMode } from './services/survivalMode';
-import { getNetworkStatus } from './utils/network';
 import {
   LocationData,
   BatteryStatus,
   NetworkStatus,
   TriggerResult,
 } from './types';
+
+const isNative = Platform.OS !== 'web';
 
 interface DashboardState {
   deviceId: string;
@@ -38,28 +35,38 @@ interface DashboardState {
   isTriggering: boolean;
 }
 
+const defaultBattery: BatteryStatus = { level: 1, isCharging: false, isLowPower: false };
+const defaultNetwork: NetworkStatus = {
+  isConnected: true,
+  isInternetReachable: true,
+  type: 'unknown',
+  isAirplaneMode: false,
+};
+
 export default function HomeScreen() {
   const [state, setState] = useState<DashboardState>({
-    deviceId: '---',
+    deviceId: Platform.OS === 'web' ? 'Web Preview Mode' : '---',
     lastLocation: null,
-    battery: { level: 1, isCharging: false, isLowPower: false },
-    network: {
-      isConnected: false,
-      isInternetReachable: false,
-      type: 'unknown',
-      isAirplaneMode: false,
-    },
+    battery: defaultBattery,
+    network: defaultNetwork,
     lastTriggerResult: null,
     isTriggering: false,
   });
   const [refreshing, setRefreshing] = useState(false);
 
   const loadStatus = useCallback(async () => {
+    if (!isNative) return; // Skip on web
+
     try {
+      const { survivalMode } = await import('./services/survivalMode');
+      const { getNetworkStatus } = await import('./utils/network');
+      const { locationService } = await import('./services/locationService');
+      const { securityService } = await import('./services/securityService');
+
       const [battery, network, lastLocation] = await Promise.all([
-        survivalMode.checkBattery(),
-        getNetworkStatus(),
-        locationService.getLastKnownLocation(),
+        survivalMode.checkBattery().catch(() => defaultBattery),
+        getNetworkStatus().catch(() => defaultNetwork),
+        locationService.getLastKnownLocation().catch(() => null),
       ]);
 
       let deviceId = '---';
@@ -94,9 +101,15 @@ export default function HomeScreen() {
   }, [loadStatus]);
 
   const handleManualTrigger = useCallback(async () => {
+    if (!isNative) {
+      Alert.alert('Web Preview', 'Manual trigger is only available on mobile devices.');
+      return;
+    }
+
     setState((prev) => ({ ...prev, isTriggering: true }));
 
     try {
+      const { triggerService } = await import('./services/triggerService');
       const result = await triggerService.manualTrigger();
       setState((prev) => ({
         ...prev,
