@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "Secure Remote Tracking",
+    "slug": "secure-remote-tracking-system",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "scheme": "srts",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0d1117"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.srts.secureremotetracking",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "This app needs access to your location to provide secure remote tracking.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "This app needs background location access for continuous secure tracking.",
+        "NSLocationAlwaysUsageDescription": "This app needs background location access for continuous secure tracking.",
+        "UIBackgroundModes": ["location", "fetch", "remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.srts.secureremotetracking",
+      "adaptiveIcon": {
+        "backgroundColor": "#0d1117",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "WAKE_LOCK",
+        "SEND_SMS",
+        "READ_PHONE_STATE",
+        "POST_NOTIFICATIONS",
+        "ACCESS_NETWORK_STATE",
+        "INTERNET",
+        "BATTERY_STATS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Secure Remote Tracking to access your location for continuous tracking.",
+          "locationAlwaysPermission": "Allow Secure Remote Tracking to access your location in the background.",
+          "locationWhenInUsePermission": "Allow Secure Remote Tracking to access your location.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#1a73e8"
+        }
+      ],
+      [
+        "expo-background-fetch",
+        {
+          "stopOnTerminate": false,
+          "startOnBoot": true
+        }
+      ]
+    ]
+  }
+}
