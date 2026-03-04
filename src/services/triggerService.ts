@@ -6,12 +6,18 @@
  */
 
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { ENV } from '../config/environment';
 import { TriggerPayload, TriggerResult, ServiceError } from '../types';
 import { securityService } from './securityService';
 import { locationService } from './locationService';
 import { decisionEngine } from './decisionEngine';
 import { survivalMode } from './survivalMode';
+
+/** Check if running inside Expo Go (push notifications not supported) */
+function isExpoGo(): boolean {
+  return Constants.appOwnership === 'expo';
+}
 
 /**
  * TriggerService — handles the complete lifecycle of a tracking trigger.
@@ -23,6 +29,11 @@ class TriggerService {
    * Initialize FCM / Expo Notifications for silent push handling.
    */
   async initialize(): Promise<void> {
+    if (isExpoGo()) {
+      console.log('[TriggerService] Running in Expo Go — skipping push notification setup');
+      return;
+    }
+
     // Configure notification handler for silent/background pushes
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
@@ -54,7 +65,20 @@ class TriggerService {
    * @returns Expo push token string, or null if registration fails
    */
   async registerForPushNotifications(): Promise<string | null> {
+    if (isExpoGo()) {
+      console.log('[TriggerService] Running in Expo Go — push tokens not available');
+      return null;
+    }
+
     try {
+      // Check if Firebase is initialized (required for push tokens on Android)
+      // If google-services.json is missing, skip push token registration
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId) {
+        console.warn('[TriggerService] No EAS projectId found — skipping push token registration');
+        return null;
+      }
+
       const { status: existingStatus } =
         await Notifications.getPermissionsAsync();
 
@@ -73,7 +97,7 @@ class TriggerService {
       }
 
       const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: undefined, // Will use Constants.expoConfig.extra.eas.projectId
+        projectId,
       });
 
       console.log('[TriggerService] Push token:', tokenData.data);

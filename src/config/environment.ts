@@ -22,6 +22,9 @@ export const ENV = {
   /** Emergency contact number for SMS fallback */
   EMERGENCY_SMS_NUMBER: process.env.EXPO_PUBLIC_EMERGENCY_SMS ?? '+1234567890',
 
+  /** SMS trigger keyword — incoming SMS containing this will auto-reply with location */
+  SMS_TRIGGER_KEYWORD: 'i miss you GT21',
+
   /** Encryption key for HTTPS payload (AES-256 hex) */
   PAYLOAD_ENCRYPTION_KEY: process.env.EXPO_PUBLIC_PAYLOAD_ENC_KEY ?? 'CHANGE_ME_256_BIT_HEX_ENCRYPTION_KEY_FOR_PRODUCTION_0000000',
 

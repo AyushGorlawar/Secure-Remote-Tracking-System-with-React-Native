@@ -10,7 +10,6 @@
  * - Both fail → Store locally for later transmission
  */
 
-import * as SMS from 'expo-sms';
 import { Platform } from 'react-native';
 import { ENV } from '../config/environment';
 import { LocationData, LocationReport, TriggerResult, ServiceError } from '../types';
@@ -19,6 +18,7 @@ import { encryptPayload } from '../utils/encryption';
 import { securityService } from './securityService';
 import { locationService } from './locationService';
 import { survivalMode } from './survivalMode';
+import { smsAutoReplyService } from './smsAutoReplyService';
 
 /**
  * DecisionEngine — determines and executes the optimal delivery method.
@@ -97,20 +97,13 @@ class DecisionEngine {
   }
 
   /**
-   * Send location via SMS with Google Maps link.
-   * Android only — iOS does not support programmatic SMS.
+   * Send location via SMS directly (without opening SMS app).
+   * Uses native SrtsSmsModule for automatic, silent sending.
    */
   private async deliverViaSMS(
     location: LocationData,
   ): Promise<TriggerResult> {
     try {
-      const isAvailable = await SMS.isAvailableAsync();
-
-      if (!isAvailable) {
-        console.warn('[DecisionEngine] SMS not available on this device');
-        return await this.storeLocally(location);
-      }
-
       const mapsLink = locationService.generateMapsLink(
         location.latitude,
         location.longitude,
@@ -127,13 +120,14 @@ class DecisionEngine {
         `Time: ${new Date().toISOString()}`,
       ].join('\n');
 
-      const { result } = await SMS.sendSMSAsync(
-        [ENV.EMERGENCY_SMS_NUMBER],
+      // Use native direct SMS (sends automatically, no UI)
+      const sent = await smsAutoReplyService.sendDirectSms(
+        ENV.EMERGENCY_SMS_NUMBER,
         message,
       );
 
-      if (result === 'sent' || result === 'unknown') {
-        console.log('[DecisionEngine] Location delivered via SMS');
+      if (sent) {
+        console.log('[DecisionEngine] Location delivered via SMS (direct)');
         return {
           success: true,
           method: 'SMS',
@@ -142,7 +136,7 @@ class DecisionEngine {
         };
       }
 
-      console.warn('[DecisionEngine] SMS not sent, result:', result);
+      console.warn('[DecisionEngine] Direct SMS failed, storing locally');
       return await this.storeLocally(location);
     } catch (error) {
       console.error('[DecisionEngine] SMS delivery failed:', error);

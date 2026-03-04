@@ -9,7 +9,14 @@ import { Platform, Alert, Linking } from 'react-native';
 import * as Location from 'expo-location';
 import * as Notifications from 'expo-notifications';
 import * as SMS from 'expo-sms';
+import { PermissionsAndroid } from 'react-native';
+import Constants from 'expo-constants';
 import { locationService } from '../services/locationService';
+
+/** Check if running inside Expo Go */
+function isExpoGo(): boolean {
+  return Constants.appOwnership === 'expo';
+}
 
 export interface PermissionStatus {
   location: {
@@ -29,6 +36,11 @@ export async function requestAllPermissions(): Promise<PermissionStatus> {
   const locationPerms = await requestLocationPermissions();
   const notificationPerm = await requestNotificationPermission();
   const smsPerm = await checkSmsAvailability();
+
+  // Request SMS receive permission for auto-reply (Android only)
+  if (Platform.OS === 'android') {
+    await requestSmsReceivePermission();
+  }
 
   const status: PermissionStatus = {
     location: locationPerms,
@@ -55,6 +67,11 @@ async function requestLocationPermissions(): Promise<{
  */
 async function requestNotificationPermission(): Promise<boolean> {
   try {
+    if (isExpoGo()) {
+      console.log('[Permissions] Expo Go — skipping push notification permission');
+      return false;
+    }
+
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
 
@@ -77,6 +94,31 @@ async function checkSmsAvailability(): Promise<boolean> {
     return await SMS.isAvailableAsync();
   } catch (error) {
     console.error('[Permissions] SMS availability check failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Request RECEIVE_SMS and READ_SMS permissions for auto-reply.
+ * These are needed so the BroadcastReceiver can intercept incoming SMS.
+ */
+async function requestSmsReceivePermission(): Promise<boolean> {
+  try {
+    const granted = await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+      PermissionsAndroid.PERMISSIONS.SEND_SMS,
+    ]);
+
+    const allGranted =
+      granted['android.permission.RECEIVE_SMS'] === PermissionsAndroid.RESULTS.GRANTED &&
+      granted['android.permission.READ_SMS'] === PermissionsAndroid.RESULTS.GRANTED &&
+      granted['android.permission.SEND_SMS'] === PermissionsAndroid.RESULTS.GRANTED;
+
+    console.log('[Permissions] SMS receive permissions:', allGranted ? 'granted' : 'denied');
+    return allGranted;
+  } catch (error) {
+    console.error('[Permissions] SMS receive permission request failed:', error);
     return false;
   }
 }

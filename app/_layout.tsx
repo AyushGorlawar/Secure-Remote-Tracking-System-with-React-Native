@@ -9,6 +9,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export default function RootLayout() {
   const [isReady, setIsReady] = useState(false);
@@ -44,13 +45,13 @@ export default function RootLayout() {
       }
 
       // Dynamic imports so web bundle doesn't pull in native modules
-      const { securityService } = await import('./services/securityService');
-      const { triggerService } = await import('./services/triggerService');
-      const { survivalMode } = await import('./services/survivalMode');
+      const { securityService } = await import('../src/services/securityService');
+      const { triggerService } = await import('../src/services/triggerService');
+      const { survivalMode } = await import('../src/services/survivalMode');
       const { registerBackgroundFetch, startBackgroundLocation } =
-        await import('./config/backgroundTasks');
+        await import('../src/config/backgroundTasks');
       const { requestAllPermissions, hasRequiredPermissions } =
-        await import('./utils/permissions');
+        await import('../src/utils/permissions');
 
       // 1. Initialize security service (device ID, etc.)
       await safeTry('SecurityService', () => securityService.initialize());
@@ -76,6 +77,10 @@ export default function RootLayout() {
 
       // 4. Initialize survival mode (battery monitoring)
       await safeTry('SurvivalMode', () => survivalMode.initialize());
+
+      // 4.5. Initialize SMS auto-reply listener (Android only)
+      const { smsAutoReplyService } = await import('../src/services/smsAutoReplyService');
+      await safeTry('SmsAutoReply', () => smsAutoReplyService.initialize());
 
       // 5. Register background tasks
       await safeTry('BackgroundFetch', () => registerBackgroundFetch());
@@ -110,7 +115,7 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -119,8 +124,10 @@ export default function RootLayout() {
           headerTitleStyle: { fontWeight: '700' },
           contentStyle: { backgroundColor: '#0d1117' },
         }}
-      />
-    </>
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </SafeAreaProvider>
   );
 }
 

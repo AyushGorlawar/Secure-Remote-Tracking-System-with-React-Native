@@ -16,13 +16,12 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { Stack } from 'expo-router';
 import {
   LocationData,
   BatteryStatus,
   NetworkStatus,
   TriggerResult,
-} from './types';
+} from '../../src/types';
 
 const isNative = Platform.OS !== 'web';
 
@@ -33,6 +32,7 @@ interface DashboardState {
   network: NetworkStatus;
   lastTriggerResult: TriggerResult | null;
   isTriggering: boolean;
+  smsAutoReplyActive: boolean;
 }
 
 const defaultBattery: BatteryStatus = { level: 1, isCharging: false, isLowPower: false };
@@ -51,6 +51,7 @@ export default function HomeScreen() {
     network: defaultNetwork,
     lastTriggerResult: null,
     isTriggering: false,
+    smsAutoReplyActive: false,
   });
   const [refreshing, setRefreshing] = useState(false);
 
@@ -58,15 +59,17 @@ export default function HomeScreen() {
     if (!isNative) return; // Skip on web
 
     try {
-      const { survivalMode } = await import('./services/survivalMode');
-      const { getNetworkStatus } = await import('./utils/network');
-      const { locationService } = await import('./services/locationService');
-      const { securityService } = await import('./services/securityService');
+      const { survivalMode } = await import('../../src/services/survivalMode');
+      const { getNetworkStatus } = await import('../../src/utils/network');
+      const { locationService } = await import('../../src/services/locationService');
+      const { securityService } = await import('../../src/services/securityService');
+      const { smsAutoReplyService } = await import('../../src/services/smsAutoReplyService');
 
-      const [battery, network, lastLocation] = await Promise.all([
+      const [battery, network, lastLocation, smsStatus] = await Promise.all([
         survivalMode.checkBattery().catch(() => defaultBattery),
         getNetworkStatus().catch(() => defaultNetwork),
         locationService.getLastKnownLocation().catch(() => null),
+        smsAutoReplyService.getStatus().catch(() => null),
       ]);
 
       let deviceId = '---';
@@ -82,6 +85,7 @@ export default function HomeScreen() {
         battery,
         network,
         lastLocation,
+        smsAutoReplyActive: smsStatus?.isActive ?? false,
       }));
     } catch (error) {
       console.error('[HomeScreen] Failed to load status:', error);
@@ -109,7 +113,7 @@ export default function HomeScreen() {
     setState((prev) => ({ ...prev, isTriggering: true }));
 
     try {
-      const { triggerService } = await import('./services/triggerService');
+      const { triggerService } = await import('../../src/services/triggerService');
       const result = await triggerService.manualTrigger();
       setState((prev) => ({
         ...prev,
@@ -139,7 +143,6 @@ export default function HomeScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'SRTS Dashboard' }} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -200,6 +203,31 @@ export default function HomeScreen() {
           {state.network.isAirplaneMode && (
             <Text style={styles.warning}>✈ Airplane mode detected</Text>
           )}
+        </View>
+
+        {/* SMS Auto-Reply Status */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>SMS Auto-Reply</Text>
+          <View style={styles.row}>
+            <View
+              style={[
+                styles.indicator,
+                {
+                  backgroundColor: state.smsAutoReplyActive
+                    ? '#22c55e'
+                    : '#ef4444',
+                },
+              ]}
+            />
+            <Text style={styles.cardValue}>
+              {state.smsAutoReplyActive ? '🟢 ACTIVE' : '🔴 INACTIVE'}
+            </Text>
+          </View>
+          <Text style={styles.cardMeta}>
+            {state.smsAutoReplyActive
+              ? 'Trigger keyword "i miss you GT21" will auto-reply with location'
+              : 'Grant SMS permissions to enable auto-reply'}
+          </Text>
         </View>
 
         {/* Last Known Location */}

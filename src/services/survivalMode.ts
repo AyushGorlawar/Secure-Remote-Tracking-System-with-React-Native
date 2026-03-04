@@ -12,7 +12,6 @@ import * as Battery from 'expo-battery';
 import { ENV } from '../config/environment';
 import { BatteryStatus, TriggerResult, ServiceError } from '../types';
 import { locationService } from './locationService';
-import { decisionEngine } from './decisionEngine';
 
 /**
  * SurvivalMode — battery-aware emergency operations.
@@ -97,6 +96,8 @@ class SurvivalMode {
       console.warn('[SurvivalMode] Executing emergency location ping!');
 
       const location = await locationService.getCurrentLocation();
+      // Lazy import to break the circular dependency with decisionEngine
+      const { decisionEngine } = require('./decisionEngine');
       const result = await decisionEngine.processAndDeliver(location);
 
       return result;
